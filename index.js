@@ -1,5 +1,6 @@
 const express = require('express')
 const cors = require('cors')
+const jwt = require('jsonwebtoken');
 const app = express()
 require('dotenv').config()
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
@@ -31,6 +32,12 @@ async function run() {
     const classesCollection = client.db("summerCamp").collection("classes")
     const cartCollection = client.db("summerCamp").collection("carts");
     const usersCollection = client.db("summerCamp").collection("users");
+
+    app.post('/jwt', (req, res) =>{
+      const user = req.body 
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' })
+      res.send({ token })
+    })
 
     //classes 
     app.get('/classes', async(req, res) =>{
@@ -69,18 +76,18 @@ async function run() {
       res.send(result)
     })
 
-    // //make instructor
-    // app.patch('/users/instructor/:id', async(req, res) =>{
-    //   const id = req.params.id 
-    //   const filter = {_id: new ObjectId(id)}
-    //   const updateDoc = {
-    //     $set: {
-    //       role: 'instructor'
-    //     },
-    //   };
-    //   const result = await usersCollection.updateOne(filter, updateDoc)
-    //   res.send(result)
-    // })
+    //make instructor
+    app.patch('/users/instructor/:id', async(req, res) =>{
+      const id = req.params.id 
+      const filter = {_id: new ObjectId(id)}
+      const updateDoc = {
+        $set: {
+          role: 'instructor'
+        },
+      };
+      const result = await usersCollection.updateOne(filter, updateDoc)
+      res.send(result)
+    })
 
 
     //cart collection api
