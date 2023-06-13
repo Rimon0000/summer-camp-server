@@ -10,6 +10,23 @@ const port = process.env.port || 5000;
 app.use(cors())
 app.use(express.json())
 
+//JWT Token verify
+const verifyJWT = (req, res, next) =>{
+  const authorization = req.headers.authorization
+  if(!authorization){
+    return res.status(401).send({error: true, message: 'unauthorized access'})
+  }
+  //bearer token
+  const token = authorization.split(' ')[1]
+
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) =>{
+    if(err){
+      return res.status(401).send({ error: true, message: 'unauthorized access'})
+    }
+    req.decoded = decoded 
+    next()
+  })
+}
 
 
 
