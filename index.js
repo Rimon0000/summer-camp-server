@@ -55,6 +55,28 @@ async function run() {
       res.send({ token })
     })
 
+    //verify Admin
+    const verifyAdmin = async(req, res, next) =>{
+      email = req.decoded.email 
+      const query = {email: email}
+      const user = await usersCollection.findOne(query)
+      if(user?.role !== 'admin'){
+        return res.status(403).send({error: true, message: 'forbidden message'})
+      }
+      next();
+    }
+
+    //verify instructor
+    const verifyInstructor = async(req, res, next) =>{
+      email = req.decoded.email 
+      const query = {email: email}
+      const user = await usersCollection.findOne(query)
+      if(user?.role !== 'instructor'){
+        return res.status(403).send({error: true, message: 'forbidden message'})
+      }
+      next();
+    }
+
     //classes 
     app.get('/classes', async(req, res) =>{
       const result = await classesCollection.find().sort({ number_of_students: -1 }).limit(6).toArray()
@@ -62,7 +84,7 @@ async function run() {
     })
 
     //users related apis
-    app.get('/users', async(req, res) =>{
+    app.get('/users', verifyJWT, async(req, res) =>{
       const result = await usersCollection.find().toArray()
       res.send(result)
     })
