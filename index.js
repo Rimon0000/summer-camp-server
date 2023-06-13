@@ -18,7 +18,6 @@ const verifyJWT = (req, res, next) =>{
   }
   //bearer token
   const token = authorization.split(' ')[1]
-
   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) =>{
     if(err){
       return res.status(401).send({ error: true, message: 'unauthorized access'})
@@ -106,13 +105,44 @@ async function run() {
       res.send(result)
     })
 
+    //check user admin or not?
+    app.get('/users/admin/:email', verifyJWT, async(req, res) =>{
+      const email = req.params.email 
+      if(req.decoded.email !== email){
+        res.send({admin: false})
+      }
+      const query = {email: email}
+      const user = await usersCollection.findOne(query)
+      const result = {admin: user?.role === 'admin'}
+      res.send(result)
+    })
+
+     //check user instructor or not?
+     app.get('/users/instructor/:email', verifyJWT, async(req, res) =>{
+      const email = req.params.email 
+      if(req.decoded.email !== email){
+        res.send({instructor: false})
+      }
+      const query = {email: email}
+      const user = await usersCollection.findOne(query)
+      const result = {instructor: user?.role === 'instructor'}
+      res.send(result)
+    })
+
 
     //cart collection api
-    app.get("/carts", async(req, res) =>{
+    app.get("/carts", verifyJWT, async(req, res) =>{
       const email = req.query.email 
       if(!email){
         res.send([])
       }
+
+      //check user email and token email 
+      const decodedEmail = req.decoded.email 
+      if(email !== decodedEmail){
+        return res.status(403).send({error: true, message: "forbidden access"})
+      }
+
       const query = { email: email };
       const result = await cartCollection.find(query).toArray()
       res.send(result)
