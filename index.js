@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const app = express()
 require('dotenv').config()
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+const stripe = require('stripe')(process.env.PAYMENT_SECRET_KEY)
 const port = process.env.port || 5000;
 
 //middleware
@@ -48,6 +49,7 @@ async function run() {
     const classesCollection = client.db("summerCamp").collection("classes")
     const cartCollection = client.db("summerCamp").collection("carts");
     const usersCollection = client.db("summerCamp").collection("users");
+    const paymentCollection = client.db("summerCamp").collection("payments");
 
     app.post('/jwt', (req, res) =>{
       const user = req.body 
@@ -84,7 +86,7 @@ async function run() {
       res.send(result)
     })
 
-    app.post('/classes', async(req, res) =>{
+    app.post('/classes', verifyJWT, verifyInstructor, async(req, res) =>{
       const newClass = req.body 
       const result = await classesCollection.insertOne(newClass)
       res.send(result)
@@ -192,6 +194,93 @@ async function run() {
       res.send(result)
     })
 
+    
+    //create payment intent
+    app.post('/create-payment-intent', verifyJWT, async(req, res) =>{
+      const {price} = req.body
+      const amount = parseInt(price*100) 
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: 'usd',
+        payment_method_types: ['card']
+      })
+      res.send({
+        clientSecret: paymentIntent.client_secret
+      })
+    })
+
+    // //payment related apis
+    // app.post('/payments', verifyJWT, async(req, res) =>{
+    //   const payment = req.body 
+    //   const insertResult = await paymentCollection.insertOne(payment)
+
+    //   const query = {_id: {$in: payment.cartItems.map(id => new ObjectId(id))}}
+    //   const deleteResult = await cartCollection.deleteMany(query)
+
+    //   res.send({insertResult, deleteResult})
+    // })
+
+
+    //TESTING
+    /* ---------------------------------
+// payment er jonno kaj start
+  ------------------------------------*/
+// Id dore payment kaj baki new****
+ app.get("/selectClass/:id", async (req, res) => {
+  const id = req.params.id;
+  const query = { _id: new ObjectId(id) };
+  const result = await selectCollection.findOne(query);
+  res.send(result);
+});
+
+
+//payment
+app.post("/payments", verifyJWT, async (req, res) => {
+  const payment = req.body;
+  const id = payment.id;
+  console.log(id);
+  const filter = { id: id };
+  const query = {
+    _id: new ObjectId(id),
+  };
+  const existingPayment = await paymentCollection.findOne(filter);
+  if (existingPayment) {
+    return res.send({ message: "Already Enrolled This Class" })
+  }
+
+  const insertResult = await paymentCollection.insertOne(payment);
+  const deleteResult = await cartCollection.deleteOne(query);
+  return res.send({ insertResult, deleteResult });
+});
+
+
+app.patch("/all-classes/seats/:id", async (req, res) => {
+  const id = req.params.id;
+  console.log(id);
+  const filter = { _id: new ObjectId(id) };
+  const updateClass = await classesCollection.findOne(filter);
+  if (!updateClass) {
+    // Handle case when the seat is not found
+    console.log("Seat not found");
+    return;
+  }
+  const updateEnrollStudent = updateClass.student + 1;
+  const updatedAvailableSeats = updateClass.seats - 1;
+  const update = {
+    $set: {
+      seats: updatedAvailableSeats,
+      student: updateEnrollStudent,
+    },
+  };
+  const result = await classesCollection.updateOne(filter, update);
+  res.send(result);
+});
+
+
+app.get('/payments', async (req, res) => {
+  const result = await paymentCollection.find().toArray()
+  res.send(result);
+})
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
