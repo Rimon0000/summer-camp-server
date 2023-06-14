@@ -77,14 +77,22 @@ async function run() {
       next();
     }
 
+
     //classes 
     app.get('/classes', async(req, res) =>{
       const result = await classesCollection.find().sort({ number_of_students: -1 }).limit(6).toArray()
       res.send(result)
     })
 
+    app.post('/classes', async(req, res) =>{
+      const newClass = req.body 
+      const result = await classesCollection.insertOne(newClass)
+      res.send(result)
+    })
+
+
     //users related apis
-    app.get('/users', verifyJWT, async(req, res) =>{
+    app.get('/users', verifyJWT, verifyAdmin, async(req, res) =>{
       const result = await usersCollection.find().toArray()
       res.send(result)
     })
