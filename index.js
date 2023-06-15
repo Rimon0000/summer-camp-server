@@ -82,9 +82,14 @@ async function run() {
 
     //classes 
     app.get('/classes', async(req, res) =>{
-      const result = await classesCollection.find().sort({ number_of_students: -1 }).limit(6).toArray()
+      const result = await classesCollection.find().toArray()
       res.send(result)
     })
+
+    // app.get('/classes', async(req, res) =>{
+    //   const result = await classesCollection.find().sort({ number_of_students: -1 }).limit(6).toArray()
+    //   res.send(result)
+    // })
 
     app.post('/classes', verifyJWT, verifyInstructor, async(req, res) =>{
       const newClass = req.body 
@@ -210,15 +215,42 @@ async function run() {
     })
 
     // //payment related apis
-    // app.post('/payments', verifyJWT, async(req, res) =>{
-    //   const payment = req.body 
-    //   const insertResult = await paymentCollection.insertOne(payment)
+    //payment
+  app.post("/payments", verifyJWT, async (req, res) => {
+      const payment = req.body;
+      const id = payment.id;
+      const filter = { id: id };
+      const query = {
+        _id: new ObjectId(payment.cartItems),
+      };    
+      const insertResult = await paymentCollection.insertOne(payment);
+      const deleteResult = await cartCollection.deleteOne(query);
+      return res.send({ insertResult, deleteResult });
+    });
 
-    //   const query = {_id: {$in: payment.cartItems.map(id => new ObjectId(id))}}
-    //   const deleteResult = await cartCollection.deleteMany(query)
-
-    //   res.send({insertResult, deleteResult})
-    // })
+    //update available seats
+      app.patch("/all-classes/seats/:id", async (req, res) => {
+        const payment = req.body
+        console.log(payment)
+        const filter = { _id: new ObjectId(payment.classItems) };
+        const updateClass = await classesCollection.findOne(filter);
+        if (!updateClass) {
+          // Handle case when the seat is not found
+          console.log("Seat not found");
+          return;
+        }
+        // const updateEnrollStudent = updateClass.student + 1;
+        const updatedAvailableSeats = updateClass.available_seats - 1;
+        const update = {
+          $set: {
+            available_seats: updatedAvailableSeats,
+            // student: updateEnrollStudent,
+          },
+        };
+        const result = await classesCollection.updateOne(filter, update);
+        res.send(result);
+    });
+      
 
 
     //TESTING
@@ -233,48 +265,6 @@ async function run() {
   res.send(result);
 });
 
-
-//payment
-app.post("/payments", verifyJWT, async (req, res) => {
-  const payment = req.body;
-  const id = payment.id;
-  console.log(id);
-  const filter = { id: id };
-  const query = {
-    _id: new ObjectId(id),
-  };
-  const existingPayment = await paymentCollection.findOne(filter);
-  if (existingPayment) {
-    return res.send({ message: "Already Enrolled This Class" })
-  }
-
-  const insertResult = await paymentCollection.insertOne(payment);
-  const deleteResult = await cartCollection.deleteOne(query);
-  return res.send({ insertResult, deleteResult });
-});
-
-
-app.patch("/all-classes/seats/:id", async (req, res) => {
-  const id = req.params.id;
-  console.log(id);
-  const filter = { _id: new ObjectId(id) };
-  const updateClass = await classesCollection.findOne(filter);
-  if (!updateClass) {
-    // Handle case when the seat is not found
-    console.log("Seat not found");
-    return;
-  }
-  const updateEnrollStudent = updateClass.student + 1;
-  const updatedAvailableSeats = updateClass.seats - 1;
-  const update = {
-    $set: {
-      seats: updatedAvailableSeats,
-      student: updateEnrollStudent,
-    },
-  };
-  const result = await classesCollection.updateOne(filter, update);
-  res.send(result);
-});
 
 
 app.get('/payments', async (req, res) => {
