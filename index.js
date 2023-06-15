@@ -216,6 +216,21 @@ async function run() {
 
     // //payment related apis
     //payment
+    app.get("/payments", verifyJWT, async(req, res) =>{
+      const email = req.query.email 
+      if(!email){
+        res.send([])
+      }
+      //check user email and token email 
+      const decodedEmail = req.decoded.email 
+      if(email !== decodedEmail){
+        return res.status(403).send({error: true, message: "forbidden access"})
+      }
+      const query = { email: email };
+      const result = await paymentCollection.find(query).toArray()
+      res.send(result)
+    })
+
   app.post("/payments", verifyJWT, async (req, res) => {
       const payment = req.body;
       const id = payment.id;
@@ -256,21 +271,21 @@ async function run() {
     //TESTING
     /* ---------------------------------
 // payment er jonno kaj start
-  ------------------------------------*/
-// Id dore payment kaj baki new****
- app.get("/selectClass/:id", async (req, res) => {
-  const id = req.params.id;
-  const query = { _id: new ObjectId(id) };
-  const result = await selectCollection.findOne(query);
-  res.send(result);
-});
+//   ------------------------------------*/
+// // Id dore payment kaj baki new****
+//  app.get("/selectClass/:id", async (req, res) => {
+//   const id = req.params.id;
+//   const query = { _id: new ObjectId(id) };
+//   const result = await selectCollection.findOne(query);
+//   res.send(result);
+// });
 
 
 
-app.get('/payments', async (req, res) => {
-  const result = await paymentCollection.find().toArray()
-  res.send(result);
-})
+// app.get('/payments', async (req, res) => {
+//   const result = await paymentCollection.find().toArray()
+//   res.send(result);
+// })
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
