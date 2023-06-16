@@ -102,6 +102,7 @@ async function run() {
       const result = await classesCollection.find(query).toArray();
       res.send(result);
     });
+
     app.get("/pendingClasses", verifyJWT, verifyAdmin, async (req, res) => {
       const result = await classesCollection.find().toArray();
       res.send(result);
@@ -111,14 +112,10 @@ async function run() {
       const result = await classesCollection
         .find({ status: "approved" })
         .sort({ students: -1 })
+        .limit(6)
         .toArray();
       res.send(result);
     });
-
-    // app.get('/classes', async(req, res) =>{
-    //   const result = await classesCollection.find().sort({ number_of_students: -1 }).limit(6).toArray()
-    //   res.send(result)
-    // })
 
     app.post("/add-class", verifyJWT, verifyInstructor, async (req, res) => {
       const newClass = req.body;
