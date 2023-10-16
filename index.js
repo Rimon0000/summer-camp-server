@@ -46,12 +46,13 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+     client.connect();
 
     const classesCollection = client.db("summerCamp").collection("classes");
     const cartCollection = client.db("summerCamp").collection("carts");
     const usersCollection = client.db("summerCamp").collection("users");
     const paymentCollection = client.db("summerCamp").collection("payments");
+    const latestClassesCollection = client.db("summerCamp").collection("latestClasses")
 
     app.post("/jwt", (req, res) => {
       const user = req.body;
@@ -345,6 +346,13 @@ async function run() {
       console.log(result);
       res.send(result);
     });
+
+
+    //latest classes
+    app.get("/latestClasses", async(req, res) =>{
+      const result = await latestClassesCollection.find().toArray();
+      res.send(result);
+    })
 
 
     // Send a ping to confirm a successful connection
